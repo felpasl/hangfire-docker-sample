@@ -1,0 +1,50 @@
+version: '3.4'
+
+services:
+
+  db:
+    image: postgres
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: example
+      HANGFIREDB_USER: hangfire
+      HANGFIREDB_PASS: pass
+      HANGFIREDB: hangfire
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./config/initDb:/docker-entrypoint-initdb.d
+#    command:
+#      - sh /docker-entrypoint-initdb.d/postgresqluser.sh
+  pgadmin4:
+    image: dpage/pgadmin4
+    volumes:
+      - pgservers:/servers.json
+    ports:
+      - 8080:80
+    environment:
+      PGADMIN_DEFAULT_EMAIL: teste@teste.com
+      PGADMIN_DEFAULT_PASSWORD: teste
+
+  hangfire.docker:
+    image: ${DOCKER_REGISTRY-}hangfiredocker
+    build:
+      context: .
+      dockerfile: Hangfire.Docker/Dockerfile
+    environment:
+      HANGFIREDB_CONN: Server=db;Port=5432;Database=postgres;User Id=postgres;Password=example;
+    depends_on:
+      - db
+  hangfire.dashboard:
+    image:  ${DOCKER_REGISTRY-}hangfiredashboard
+    ports:
+      - 8081:80
+    build:
+      context: .
+      dockerfile: Hangfire.Docker.Web/Dockerfile
+    environment:
+      HANGFIREDB_CONN: Server=db;Port=5432;Database=postgres;User Id=postgres;Password=example;
+    depends_on:
+      - db
+volumes:
+  pgdata:
+  pgservers:
